@@ -1,148 +1,68 @@
-🔊 Environmental Audio Classification with Deep Learning
+# Environmental Audio Classification
 
-🎧 Multi-Class Sound Event Recognition using Classical ML & CNNs
+**Classifying explosions, emergency sirens, running engines and aircraft take-offs from raw audio: a decision-tree baseline on waveforms versus a CNN on mel-spectrograms.**
 
-📌 Overview
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/dojedaro/audio-event-classification/blob/main/Audio%20Classification%20with%20ML%20Classifier%20and%20CNN.ipynb)
+[![Notebook checks](https://github.com/dojedaro/audio-event-classification/actions/workflows/notebooks.yml/badge.svg)](https://github.com/dojedaro/audio-event-classification/actions/workflows/notebooks.yml)
 
-This project presents an end-to-end audio classification pipeline for environmental and mechanical sound events, progressing from raw waveform analysis to deep learning with mel-spectrograms.
+## Results
 
-The system classifies audio clips into four real-world sound categories using:
+| Model | Input | Test clips | Accuracy | Macro F1 | Weighted F1 |
+|---|---|---|---|---|---|
+| Decision tree | raw waveform, truncated to a fixed length | 309 | 0.864 | 0.833 | 0.860 |
+| 2D CNN | 128-band log-mel spectrogram, 5 s at 22.05 kHz | 247 | 1.000 | 1.000 | 1.000 |
 
-✅ A classical machine learning baseline (Decision Tree on raw audio)
+Per-class F1 for the baseline shows where raw samples struggle: Explosion 0.84, Emergency Signals 0.84,
+**Engine Running 0.67**, Take Off 0.98. A running engine is a steady drone that a tree can't separate from
+other low-frequency noise without frequency features.
 
-✅ A 2D Convolutional Neural Network (CNN) trained on mel-spectrogram representations
+**Read the CNN's 100% with care.** Validation accuracy swung between 23% and 100% from epoch to epoch,
+and one late epoch dropped back to 67% with a validation loss above 100. Training that unstable
+rarely produces a perfect test score unless the test clips are very easy or closely related to
+training clips (for example, several clips cut from the same recording). I haven't ruled that out,
+and the two models were also evaluated on different splits (309 vs. 247 clips). The fair conclusion is
+that spectrograms help a lot, not that the CNN is perfect.
 
-The project emphasizes data inspection, preprocessing rigor, and model comparison, making it suitable for both academic study and applied audio AI portfolios.
+## How it works
 
-🎯 Sound Categories
+```mermaid
+flowchart LR
+    A[Audio files<br/>wav, mp3, ogg, flac] --> B[Inspect lengths<br/>and waveforms]
+    B --> C[Truncate / pad<br/>to fixed length]
+    C --> D[Decision tree<br/>on raw samples]
+    C --> E[Log-mel spectrogram<br/>128 bands]
+    E --> F[CNN: 3 conv blocks<br/>+ batch norm + dropout]
+    D --> G[Accuracy, F1,<br/>per-class report]
+    F --> G
+```
 
-The dataset is organized into four labeled classes:
+- **Baseline:** a decision tree on flattened, length-normalized waveforms, with no hand-made features. It sets the bar a learned representation has to beat.
+- **CNN:** each clip becomes a 128-band log-mel spectrogram, treated as an image. Three convolutional blocks with batch normalization and max pooling, then dense layers with dropout (about 5.8M parameters), trained with Adam and early stopping.
 
-🔹 Explosion
-🔹 Emergency Signals
-🔹 Engine Running
-🔹 Take Off
+## Run it
 
-Each class contains real-world audio recordings with varying durations and acoustic characteristics.
+The notebook runs on Google Colab and reads audio from Google Drive, one folder per class
+(`Explosion/`, `Emergency Signals/`, `Engine running/`, `Take off/`). The dataset isn't in this repo.
 
-🗂️ Dataset Handling
+```bash
+pip install -r requirements.txt
+jupyter notebook "Audio Classification with ML Classifier and CNN.ipynb"
+```
 
-📁 Audio data is stored on Google Drive and accessed via Colab mounting.
-📁 Each category corresponds to a dedicated folder.
+Outside Colab, replace the `google.colab.drive.mount` cell with a local path to the class folders.
 
-🎧 Audio Properties
+## Stack
 
-Multiple formats: .wav, .mp3, .ogg, .flac
+Python, librosa, NumPy, scikit-learn, TensorFlow/Keras, Matplotlib.
 
-Variable-length recordings
+## Limitations and next steps
 
-Mono / stereo inputs handled automatically
+- **Split by recording, not by clip**, and evaluate both models on the same test set. That's the
+  check that would confirm or deflate the 100%.
+- Report a confusion matrix over several random seeds instead of one run.
+- Add a stronger classical baseline (MFCC features + gradient boosting) so the CNN's gain is measured
+  against features, not raw samples.
 
-Sampling rates preserved or normalized when needed
+## License
 
-🔍 Exploratory Audio Analysis
-
-Before modeling, the project performs:
-
-📊 Waveform visualization
-📏 Sample-length and duration analysis per class
-📈 Minimum, maximum, and average audio lengths
-
-This step ensures:
-
-Data consistency
-
-Safe truncation and padding strategies
-
-Fair model input preparation
-
-🧪 Baseline Model — Classical ML
-🌳 Decision Tree Classifier
-
-A Decision Tree is trained directly on flattened raw audio samples:
-
-Audio signals truncated to a fixed length
-
-No handcrafted features
-
-Direct waveform-based classification
-
-📊 Baseline Performance
-
-Accuracy: ~86%
-
-Macro F1 Score: ~0.83
-
-Weighted F1 Score: ~0.86
-
-🔎 This baseline establishes a reference point and highlights the limitations of raw-signal classical models.
-
-🧠 Deep Learning Approach — 2D CNN
-🎼 Feature Extraction
-
-Audio signals are transformed into mel-spectrograms:
-
-Sample rate: 22,050 Hz
-
-Duration: 5 seconds
-
-Mel bands: 128
-
-Log-scaled (dB) representation
-
-Each spectrogram is treated as an image, enabling spatial pattern learning.
-
-🧱 CNN Architecture
-
-🧩 Model characteristics:
-
-3 convolutional blocks
-
-Batch normalization + max pooling
-
-Dense layers with dropout
-
-Softmax output for multi-class prediction
-
-📦 Total parameters: ~5.8M
-⚡ Optimizer: Adam
-🎯 Loss: Categorical Cross-Entropy
-
-📈 CNN Training & Evaluation
-🏋️ Training Setup
-
-Train / test split: 80 / 20
-
-Early stopping enabled
-
-Batch size: 32
-
-Epochs: up to 30
-
-🧪 Final CNN Results (Test Set)
-
-✅ Accuracy: 100%
-✅ Macro F1: 1.00
-✅ Weighted F1: 1.00
-
-📊 Per-Class F1 Scores
-
-Explosion: 1.00
-
-Emergency Signals: 1.00
-
-Engine Running: 1.00
-
-Take Off: 1.00
-
-🚀 The CNN significantly outperforms the classical baseline, demonstrating the power of time–frequency representations.
-
-🔁 Pipeline Summary
-
-1️⃣ Load and inspect raw audio
-2️⃣ Analyze duration and waveform properties
-3️⃣ Build a classical ML baseline
-4️⃣ Convert audio to mel-spectrograms
-5️⃣ Train a deep CNN
-6️⃣ Evaluate using accuracy and F1 metrics
-7️⃣ Compare baseline vs deep learning
+MIT
